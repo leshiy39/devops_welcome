@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "welcome-page.fullname" . }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "welcome-page.name" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "welcome-page.name" . }}
+    spec:
+      containers:
+        - name: welcome-page
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 5000
+          env:
+            - name: NODE_HOST
+              value: "{{ .Values.nodeHost }}"

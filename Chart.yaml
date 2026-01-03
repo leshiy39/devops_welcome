@@ -1,0 +1,4 @@
+apiVersion: v2
+name: welcome-page
+version: 0.1.0
+description: "Cluster welcome page"
