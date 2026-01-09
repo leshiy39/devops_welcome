@@ -13,69 +13,92 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def get_buttons():
-    buttons = []
+import logging
+from kubernetes import client, config
 
-    # Загружаем kubeconfig
-    try:
+logger = logging.getLogger(__name__)
+
+ALLOWED_NAMESPACES = {"default", "kube-system"}
+
+def load_k8s_config():
+    if os.environ.get("KUBERNETES_SERVICE_HOST"):
         config.load_incluster_config()
         logger.info("Using in-cluster Kubernetes config")
-    except config.ConfigException:
+    else:
         config.load_kube_config()
         logger.info("Using local kubeconfig")
 
-    namespace = "default"
-    logger.info("Listing services in namespace: %s", namespace)
+def group_buttons_by_namespace(raw_buttons):
+    """
+    raw_buttons = [
+        {"label": "VAULT", "ns": "default", "url": "..."},
+        {"label": "GRAFANA", "ns": "kube-system", "url": "..."},
+        ...
+    ]
+    Возвращает dict: { "default": [...], "kube-system": [...] }
+    """
+    grouped = {}
+    for btn in raw_buttons:
+        ns = btn["ns"]
+        grouped.setdefault(ns, [])
+        # Добавляем только label и url для шаблона
+        grouped[ns].append({
+            "label": btn["label"],
+            "url": btn["url"]
+        })
+    return grouped
 
-    v1 = client.CoreV1Api()
-    services = v1.list_namespaced_service(namespace=namespace)
 
-    logger.info("Found %d services total", len(services.items))
+def get_buttons():
+    load_k8s_config()
 
-    for svc in services.items:
-        name = svc.metadata.name
-        labels = svc.metadata.labels or {}
+    buttons = []
+    raw_buttons = []
+    net = client.NetworkingV1Api()
 
-        logger.info("Processing service: %s labels=%s", name, labels)
+    ingresses = net.list_ingress_for_all_namespaces()
+    logger.info("Found %d ingresses total", len(ingresses.items))
+
+    for ing in ingresses.items:
+        ns = ing.metadata.namespace
+        name = ing.metadata.name
+        labels = ing.metadata.labels or {}
+
+        logger.info("Processing ingress %s/%s labels=%s", ns, name, labels)
+
+        # Фильтр по namespace
+        if ns not in ALLOWED_NAMESPACES:
+            logger.debug("Skipping ingress %s/%s: namespace not allowed", ns, name)
+            continue
 
         # Фильтр по label
         # if labels.get("welcome") != "true":
-        #     logger.debug("Skipping service %s: welcome label not set", name)
+        #     logger.debug("Skipping ingress %s/%s: welcome label not set", ns, name)
         #     continue
 
-        url = None
-        svc_type = svc.spec.type
-        logger.info("Service %s accepted (type=%s)", name, svc_type)
+        for rule in ing.spec.rules or []:
+            host = rule.host
+            if not host:
+                continue
 
-        if svc_type == "NodePort":
-            node_port = svc.spec.ports[0].node_port
-            hostname = os.environ.get("NODE_HOST", "localhost")
-            url = f"http://{hostname}:{node_port}"
-            logger.info("Service %s NodePort URL: %s", name, url)
+            scheme = "https" if ing.spec.tls else "http"
 
-        elif svc_type == "ClusterIP":
-            cluster_ip = svc.spec.cluster_ip
-            port = svc.spec.ports[0].port
-            url = f"http://{cluster_ip}:{port}"
-            logger.info("Service %s ClusterIP URL: %s", name, url)
-
-        elif svc_type == "ExternalName":
-            url = f"http://{svc.spec.external_name}"
-            logger.info("Service %s ExternalName URL: %s", name, url)
-
-        else:
-            logger.warning("Service %s has unsupported type: %s", name, svc_type)
-
-        if url:
-            buttons.append({
-                "url": url,
-                "label": f"{svc.metadata.namespace}/{name}"
-            })
-        else:
-            logger.warning("Service %s skipped: URL could not be constructed", name)
+            # Path (обычно "/")
+            paths = rule.http.paths if rule.http else []
+            for path in paths:
+                url = f"{scheme}://{host}{path.path}"
+                # После того, как строим каждую кнопку
+                raw_buttons.append({
+                    "label": name.upper(),
+                    "ns": ns,
+                    "url": url
+                })
+                logger.info("Added button: %s -> %s", name, url)
 
     logger.info("Total buttons generated: %d", len(buttons))
+    buttons = group_buttons_by_namespace(raw_buttons)
     return buttons
+
 
 
 @app.route('/')

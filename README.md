@@ -1,4 +1,4 @@
 ```
-docker build --network=host -t devops-tools-welcome:latest ./app
-docker push devops-tools-welcome:latest
+docker build --network=host -t ykarabanov/devops-tools-welcome:latest ./app
+docker push ykarabanov/devops-tools-welcome:latest
 ```

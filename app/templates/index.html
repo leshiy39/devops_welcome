@@ -1,22 +1,114 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Welcome Page</title>
+  <meta charset="UTF-8">
+  <title>DevOps Tools Portal</title>
+
   <style>
-    body { font-family: Arial; margin: 50px; }
-    h1 { margin-bottom: 20px; }
-    ul { list-style: none; padding: 0; }
-    li { margin: 10px 0; }
-    a { text-decoration: none; padding: 10px 20px; background: #007bff; color: white; border-radius: 5px; }
-    a:hover { background: #0056b3; }
+    :root {
+      --bg-main: #0f172a;
+      --bg-card: #020617;
+      --bg-button: #1e293b;
+      --bg-button-hover: #334155;
+      --text-main: #e5e7eb;
+      --text-muted: #94a3b8;
+      --accent: #3b82f6;
+      --border: #1e293b;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg-main);
+      color: var(--text-main);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 40px auto;
+      padding: 24px;
+    }
+
+    h1 {
+      font-size: 28px;
+      margin-bottom: 32px;
+      font-weight: 600;
+    }
+
+    .namespace {
+      margin-bottom: 40px;
+    }
+
+    .namespace-title {
+      font-size: 14px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .buttons-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .tool-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: var(--bg-button);
+      border-radius: 10px;
+      text-decoration: none;
+      color: var(--text-main);
+      font-size: 15px;
+      font-weight: 500;
+      border: 1px solid var(--border);
+      transition: background 0.15s ease, transform 0.1s ease;
+    }
+
+    .tool-button:hover {
+      background: var(--bg-button-hover);
+      transform: translateY(-1px);
+    }
+
+    @media (max-width: 700px) {
+      .buttons-grid {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
+
 <body>
-  <h1>Welcome to the Cluster</h1>
-  <ul>
-    {% for btn in buttons %}
-      <li><a href="{{ btn.url }}" target="_blank">{{ btn.label }}</a></li>
+  <div class="container">
+    <h1>DevOps Tools Portal</h1>
+
+    {% for namespace, items in buttons.items() %}
+      <div class="namespace">
+        <div class="namespace-title">
+          {{ namespace }}
+        </div>
+
+        <div class="buttons-grid">
+          {% for btn in items %}
+            <a class="tool-button"
+               href="{{ btn.url }}"
+               target="_blank"
+               rel="noopener noreferrer">
+              {{ btn.label }}
+            </a>
+          {% endfor %}
+        </div>
+      </div>
     {% endfor %}
-  </ul>
+  </div>
 </body>
 </html>
