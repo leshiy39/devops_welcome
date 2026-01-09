@@ -12,6 +12,7 @@ spec:
       labels:
         app: {{ include "welcome-page.name" . }}
     spec:
+      serviceAccountName: {{ include "welcome-page.fullname" . }}
       containers:
         - name: welcome-page
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
